@@ -1,137 +1,149 @@
 #!/bin/bash
 set -euo pipefail
 
-# Variables
-#----------------------------
-GREEN="\e[32m"
-WHITE="\e[0m"
-YELLOW="\e[33m"
-BLUE="\e[34m"
-#----------------------------
+# ==================================================
+# SCRIPT DI FORZATURA TERMINALE ARCH
+# Autore: anto426
+# Modalità: FORZATA (override totale)
+# ==================================================
 
-# Welcome message
-echo -e "
-                    ${GREEN}\e[1mWELCOME!${GREEN}
-    Now we will customize Arch-based Terminal
-             Created by \e[1;4mPhunt_Vieg_
+FORCE_BACKUP=true   # true = backup config utente, false = cancella senza backup
+
+# Colori
+GREEN="\e[32m"
+YELLOW="\e[33m"
+RED="\e[31m"
+WHITE="\e[0m"
+
+echo -e "${RED}
+==================================================
+  ATTENZIONE: MODALITÀ FORZATA ATTIVA
+  Tutte le configurazioni utente verranno sovrascritte
+  Autore: anto426
+==================================================
 ${WHITE}"
 
+sleep 2
 cd ~
 
-# Updating the system
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[1/10]${GREEN} ==> Updating system packages\n---------------------------------------------------------------------\n${WHITE}"
+# ==================================================
+# AGGIORNAMENTO SISTEMA
+# ==================================================
 sudo pacman -Syu --noconfirm
 
-
-# Setting locale
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[2/10]${GREEN} ==> Setting locale\n---------------------------------------------------------------------\n${WHITE}"
-sudo sed -i '/^#en_US.UTF-8 UTF-8/s/^#//' /etc/locale.gen
+# ==================================================
+# FORZATURA LOCALE ITALIANA
+# ==================================================
+sudo sed -i 's/^#it_IT.UTF-8 UTF-8/it_IT.UTF-8 UTF-8/' /etc/locale.gen
 sudo locale-gen
-sudo localectl set-locale LANG=en_US.UTF-8
+sudo localectl set-locale LANG=it_IT.UTF-8
 
+# ==================================================
+# PACCHETTI BASE (FORZATI)
+# ==================================================
+sudo pacman -S --noconfirm --needed \
+base-devel git curl wget unzip \
+python python-pip nodejs npm ruby go \
+neovim tmux stow zsh \
+btop fastfetch cmatrix cowsay \
+ripgrep fd bat eza fzf zoxide \
+gdb strace ltrace binwalk checksec \
+openssh netcat rustup
 
-# Install base tools + yay
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[3/10]${GREEN} ==> Installing base tools and yay\n---------------------------------------------------------------------\n${WHITE}"
-sudo pacman -S --noconfirm --needed base-devel git rustup
-rustup default stable
+# ==================================================
+# INSTALLAZIONE YAY (FORZATA)
+# ==================================================
+if ! command -v yay &>/dev/null; then
+    git clone https://aur.archlinux.org/yay.git /tmp/yay
+    cd /tmp/yay
+    makepkg -si --noconfirm
+    rm -rf /tmp/yay
+fi
 
-git clone https://aur.archlinux.org/yay.git
-cd yay
-makepkg -si --noconfirm
-cd ~
-rm -rf yay
+# ==================================================
+# PACCHETTI AUR
+# ==================================================
+yay -S --noconfirm --needed \
+cbonsai pipes.sh oh-my-posh pwninit
 
+# ==================================================
+# SBLOCCO PIP GLOBALE (FORZATO)
+# ==================================================
+sudo rm -f /usr/lib/python*/EXTERNALLY-MANAGED || true
 
-# Pacman packages
-pacman_packages=(
-    # System monitoring & visuals
-    btop cmatrix cowsay fastfetch
-
-    # Essential utilities
-    make curl wget unzip dpkg ripgrep fd man openssh netcat
-    fzf eza bat zoxide neovim tmux stow
-    lazydocker lazygit
-
-    # CTF / Reverse
-    perl-image-exiftool gdb ascii ltrace strace checksec patchelf upx binwalk
-
-    # Programming languages
-    python python-pip nodejs npm ruby go
-
-    # Shell
-    zsh
-)
-
-# AUR packages
-aur_packages=(
-    cbonsai
-    pipes.sh
-    oh-my-posh
-    pwninit
-)
-
-
-# Install pacman packages
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[4/10]${GREEN} ==> Installing pacman packages\n---------------------------------------------------------------------\n${WHITE}"
-sudo pacman -S --noconfirm "${pacman_packages[@]}"
-
-
-# Install AUR packages
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[5/10]${GREEN} ==> Installing AUR packages\n---------------------------------------------------------------------\n${WHITE}"
-yay -S --noconfirm "${aur_packages[@]}"
-
-
-# Allow global pip installs (CTF setup)
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[6/10]${GREEN} ==> Enabling global pip installs\n---------------------------------------------------------------------\n${WHITE}"
-sudo rm -f "$(python - <<EOF
-import sys
-print(f'/usr/lib/python{sys.version_info.major}.{sys.version_info.minor}/EXTERNALLY-MANAGED')
-EOF
-)"
-
-
-# Install pwndbg & one_gadget
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[7/10]${GREEN} ==> Installing pwndbg and one_gadget\n---------------------------------------------------------------------\n${WHITE}"
-git clone --depth=1 https://github.com/pwndbg/pwndbg
-cd pwndbg
+# ==================================================
+# INSTALLAZIONE PWNDBG
+# ==================================================
+rm -rf ~/pwndbg
+git clone https://github.com/pwndbg/pwndbg ~/pwndbg
+cd ~/pwndbg
 ./setup.sh
 cd ~
-rm -rf pwndbg
+rm -rf ~/pwndbg
 
-sudo gem install one_gadget
+sudo gem install one_gadget || true
 
+# ==================================================
+# INSTALLAZIONE WAIFU-COLORSCRIPT (FORZATA)
+# ==================================================
+rustup default stable
 
-# Install waifu-colorscripts (Rust)
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[8/10]${GREEN} ==> Installing waifu-colorscripts\n---------------------------------------------------------------------\n${WHITE}"
-git clone https://github.com/Akzestia/waifu-colorscript.git
-cd waifu-colorscript
-cargo install --path .
-sudo cp ~/.cargo/bin/waifu-colorscript /usr/bin/
+rm -rf /tmp/waifu
+git clone https://github.com/Akzestia/waifu-colorscript.git /tmp/waifu
+cd /tmp/waifu
+cargo build --release
+sudo cp target/release/waifu-colorscript /usr/bin/
+sudo chmod +x /usr/bin/waifu-colorscript
 cd ~
-rm -rf waifu-colorscript
+rm -rf /tmp/waifu
 
+# ==================================================
+# RESET CONFIGURAZIONI UTENTE
+# ==================================================
+if $FORCE_BACKUP; then
+    BACKUP_DIR=~/config_backup_$(date +%s)
+    mkdir -p "$BACKUP_DIR"
+    mv ~/.bashrc ~/.zshrc ~/.config "$BACKUP_DIR" 2>/dev/null || true
+else
+    rm -rf ~/.bashrc ~/.zshrc ~/.config
+fi
 
-# Dotfiles
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[9/10]${GREEN} ==> Installing dotfiles\n---------------------------------------------------------------------\n${WHITE}"
-git clone --depth=1 https://github.com/ViegPhunt/Dotfiles.git ~/dotfiles
-git clone --depth=1 https://github.com/tmux-plugins/tpm ~/dotfiles/.tmux/plugins/tpm
+# ==================================================
+# DOTFILES (FORZATI)
+# ==================================================
+rm -rf ~/dotfiles
+git clone https://github.com/ViegPhunt/Dotfiles.git ~/dotfiles
+git clone https://github.com/tmux-plugins/tpm ~/dotfiles/.tmux/plugins/tpm
 
 cd ~/dotfiles
-./.config/viegphunt/backup_config.sh
-stow -t ~ .
+stow -t ~ . || true
 cd ~
 
-
-# Change shell
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[10/10]${GREEN} ==> Changing default shell to zsh\n---------------------------------------------------------------------\n${WHITE}"
+# ==================================================
+# FORZATURA ZSH COME SHELL
+# ==================================================
 ZSH_PATH="$(command -v zsh)"
 grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells
-chsh -s "$ZSH_PATH"
+sudo chsh -s "$ZSH_PATH" "$USER"
 
+# ==================================================
+# ZSHRC FORZATO
+# ==================================================
+cat > ~/.zshrc << 'EOF'
+# Configurazione forzata - anto426
+export PATH="/usr/bin:$HOME/.cargo/bin:$PATH"
 
-echo -e "\n${GREEN}
- **************************************************
- *                    \e[1;4mDone\e[0m${GREEN}!!!                     *
- *       Please relogin to apply new config.      *
- **************************************************
+fastfetch
+waifu-colorscript --random
+EOF
+
+# ==================================================
+# FINE
+# ==================================================
+echo -e "${GREEN}
+==================================================
+  INSTALLAZIONE COMPLETATA
+  Effettua LOGOUT / LOGIN
+  Autore: anto426
+==================================================
 ${WHITE}"
