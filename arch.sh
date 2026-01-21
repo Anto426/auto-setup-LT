@@ -42,13 +42,13 @@ sudo localectl set-locale LANG=it_IT.UTF-8
 # PACCHETTI BASE (FORZATI)
 # ==================================================
 sudo pacman -S --noconfirm --needed \
-base-devel git curl wget unzip \
-python python-pip nodejs npm ruby go \
-neovim tmux stow zsh \
-btop fastfetch cmatrix cowsay \
-ripgrep fd bat eza fzf zoxide \
-gdb strace ltrace binwalk checksec \
-openssh netcat rustup
+    base-devel git curl wget unzip \
+    python python-pip nodejs npm ruby go \
+    neovim tmux stow zsh \
+    btop fastfetch cmatrix cowsay \
+    ripgrep fd bat eza fzf zoxide \
+    gdb strace ltrace binwalk checksec \
+    openssh netcat rustup
 
 # ==================================================
 # INSTALLAZIONE YAY (FORZATA)
@@ -64,7 +64,7 @@ fi
 # PACCHETTI AUR
 # ==================================================
 yay -S --noconfirm --needed \
-cbonsai pipes.sh oh-my-posh pwninit
+    cbonsai pipes.sh oh-my-posh pwninit
 
 # ==================================================
 # SBLOCCO PIP GLOBALE (FORZATO)
@@ -84,16 +84,16 @@ rm -rf ~/pwndbg
 sudo gem install one_gadget || true
 
 # ==================================================
-# INSTALLAZIONE WAIFU-COLORSCRIPT (FORZATA)
+# INSTALLAZIONE WAIFU-COLORSCRIPT (FORZATA HTTPS)
 # ==================================================
 rustup default stable
 
 rm -rf /tmp/waifu
-git clone https://github.com/Akzestia/waifu-colorscript.git /tmp/waifu
+git clone https://github.com/Akzestia/waifu-colorscripts.git /tmp/waifu
 cd /tmp/waifu
 cargo build --release
-sudo cp target/release/waifu-colorscript /usr/bin/
-sudo chmod +x /usr/bin/waifu-colorscript
+sudo cp target/release/waifu-colorscripts /usr/bin/
+sudo chmod +x /usr/bin/waifu-colorscripts
 cd ~
 rm -rf /tmp/waifu
 
@@ -134,7 +134,7 @@ cat > ~/.zshrc << 'EOF'
 export PATH="/usr/bin:$HOME/.cargo/bin:$PATH"
 
 fastfetch
-waifu-colorscript --random
+waifu-colorscripts --random
 EOF
 
 # ==================================================
