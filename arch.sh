@@ -1,10 +1,8 @@
-#!/usr/bin/env bash
+#!/bin/bash
 set -euo pipefail
-
 
 # Variables
 #----------------------------
-# Color variables
 GREEN="\e[32m"
 WHITE="\e[0m"
 YELLOW="\e[33m"
@@ -13,7 +11,7 @@ BLUE="\e[34m"
 
 # Welcome message
 echo -e "
-                    ${GREEN}\e[1mWELCOME!${GREEN} 
+                    ${GREEN}\e[1mWELCOME!${GREEN}
     Now we will customize Arch-based Terminal
              Created by \e[1;4mPhunt_Vieg_
 ${WHITE}"
@@ -25,25 +23,28 @@ echo -e "${GREEN}\n-------------------------------------------------------------
 sudo pacman -Syu --noconfirm
 
 
-# Setting locale 
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[2/10]${GREEN} ==> Setting locale \n---------------------------------------------------------------------\n${WHITE}"
+# Setting locale
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[2/10]${GREEN} ==> Setting locale\n---------------------------------------------------------------------\n${WHITE}"
 sudo sed -i '/^#en_US.UTF-8 UTF-8/s/^#//' /etc/locale.gen
 sudo locale-gen
 sudo localectl set-locale LANG=en_US.UTF-8
 
 
-# Download some terminal tool
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[3/10]${GREEN} ==> Download some terminal tool\n---------------------------------------------------------------------\n${WHITE}"
-sudo pacman -S --noconfirm --needed base-devel git
+# Install base tools + yay
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[3/10]${GREEN} ==> Installing base tools and yay\n---------------------------------------------------------------------\n${WHITE}"
+sudo pacman -S --noconfirm --needed base-devel git rustup
+rustup default stable
+
 git clone https://aur.archlinux.org/yay.git
 cd yay
 makepkg -si --noconfirm
 cd ~
-rm -rf ~/yay
+rm -rf yay
 
 
+# Pacman packages
 pacman_packages=(
-    # System monitoring and fun terminal visuals
+    # System monitoring & visuals
     btop cmatrix cowsay fastfetch
 
     # Essential utilities
@@ -51,57 +52,70 @@ pacman_packages=(
     fzf eza bat zoxide neovim tmux stow
     lazydocker lazygit
 
-    # CTF tools
+    # CTF / Reverse
     perl-image-exiftool gdb ascii ltrace strace checksec patchelf upx binwalk
 
     # Programming languages
-    python3 python-pip nodejs npm ruby go
+    python python-pip nodejs npm ruby go
 
-    # Shell & customization
+    # Shell
     zsh
 )
-aur_packages=(
-    # System monitoring and fun terminal visuals
-    cbonsai pipes.sh pokemon-colorscripts-git oh-my-posh
 
-    # CTF tools
+# AUR packages
+aur_packages=(
+    cbonsai
+    pipes.sh
+    oh-my-posh
     pwninit
 )
 
 
-# Download pacman packages
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[4/10]${GREEN} ==> Download pacman packages\n---------------------------------------------------------------------\n${WHITE}"
+# Install pacman packages
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[4/10]${GREEN} ==> Installing pacman packages\n---------------------------------------------------------------------\n${WHITE}"
 sudo pacman -S --noconfirm "${pacman_packages[@]}"
 
 
-# Download yay packages
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[5/10]${GREEN} ==> Download yay packages\n---------------------------------------------------------------------\n${WHITE}"
+# Install AUR packages
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[5/10]${GREEN} ==> Installing AUR packages\n---------------------------------------------------------------------\n${WHITE}"
 yay -S --noconfirm "${aur_packages[@]}"
 
 
-# Allow pip3 install by removing EXTERNALLY-MANAGED file
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[6/10]${GREEN} ==> Allow pip3 install by removing EXTERNALLY-MANAGED file\n---------------------------------------------------------------------\n${WHITE}"
-sudo rm -rf $(python3 -c "import sys; print(f'/usr/lib/python{sys.version_info.major}.{sys.version_info.minor}/EXTERNALLY-MANAGED')")
+# Allow global pip installs (CTF setup)
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[6/10]${GREEN} ==> Enabling global pip installs\n---------------------------------------------------------------------\n${WHITE}"
+sudo rm -f "$(python - <<EOF
+import sys
+print(f'/usr/lib/python{sys.version_info.major}.{sys.version_info.minor}/EXTERNALLY-MANAGED')
+EOF
+)"
 
 
-# Download pwndbg and pwntools
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[7/10]${GREEN} ==> Download pwndbg and pwntools\n---------------------------------------------------------------------\n${WHITE}"
+# Install pwndbg & one_gadget
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[7/10]${GREEN} ==> Installing pwndbg and one_gadget\n---------------------------------------------------------------------\n${WHITE}"
 git clone --depth=1 https://github.com/pwndbg/pwndbg
 cd pwndbg
 ./setup.sh
-cd ..
-# pip3 install pwntools
+cd ~
+rm -rf pwndbg
+
 sudo gem install one_gadget
 
 
-# Download file config"
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[8/10]${GREEN} ==> Download file config\n---------------------------------------------------------------------\n${WHITE}"
+# Install waifu-colorscripts (Rust)
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[8/10]${GREEN} ==> Installing waifu-colorscripts\n---------------------------------------------------------------------\n${WHITE}"
+git clone https://github.com/Akzestia/waifu-colorscript.git
+cd waifu-colorscript
+cargo install --path .
+sudo cp ~/.cargo/bin/waifu-colorscript /usr/bin/
+cd ~
+rm -rf waifu-colorscript
+
+
+# Dotfiles
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[9/10]${GREEN} ==> Installing dotfiles\n---------------------------------------------------------------------\n${WHITE}"
 git clone --depth=1 https://github.com/ViegPhunt/Dotfiles.git ~/dotfiles
 git clone --depth=1 https://github.com/tmux-plugins/tpm ~/dotfiles/.tmux/plugins/tpm
- 
 
-# Stow
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[9/10]${GREEN} ==> Stow\n---------------------------------------------------------------------\n${WHITE}"
 cd ~/dotfiles
 ./.config/viegphunt/backup_config.sh
 stow -t ~ .
@@ -109,16 +123,15 @@ cd ~
 
 
 # Change shell
-echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[10/10]${GREEN} ==> Change shell\n---------------------------------------------------------------------\n${WHITE}"
-ZSH_PATH="$(which zsh)"
+echo -e "${GREEN}\n---------------------------------------------------------------------\n${YELLOW}[10/10]${GREEN} ==> Changing default shell to zsh\n---------------------------------------------------------------------\n${WHITE}"
+ZSH_PATH="$(command -v zsh)"
 grep -qxF "$ZSH_PATH" /etc/shells || echo "$ZSH_PATH" | sudo tee -a /etc/shells
 chsh -s "$ZSH_PATH"
 
 
-echo -e "\n ${GREEN}
+echo -e "\n${GREEN}
  **************************************************
  *                    \e[1;4mDone\e[0m${GREEN}!!!                     *
  *       Please relogin to apply new config.      *
  **************************************************
- 
-"
+${WHITE}"
